@@ -61,6 +61,7 @@ Your task:
 3. Save the plan using the write_requirements tool.
 4. Never ask unnecessary questions.
 5. Be concise in your responses.
+6. Also generate file structure based on the language and framework you choose. Do not recommend unnecessary files. Only generate files that are relevant to the project.
 """
 )
 

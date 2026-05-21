@@ -18,13 +18,42 @@ llm = ChatOllama(
 # ==========================================
 
 @tool
-def write_code(content: str) -> str:
-    """Write project code to main.py"""
+def write_code(path: str, content: str) -> str:
+    """Write project code to a file"""
 
-    with open("main.py", "w") as f:
-        f.write(content)
+    import os
+    import traceback
 
-    return "main.py created successfully."
+    try:
+
+        folder = os.path.dirname(path)
+
+        if folder:
+            os.makedirs(folder, exist_ok=True)
+
+        with open(path, "w") as f:
+            f.write(content)
+
+        return f"{path} created successfully."
+
+    except Exception as e:
+
+        traceback.print_exc()
+
+        return f"ERROR WRITING FILE: {str(e)}"
+
+@tool
+def bash_command(command: str) -> str:
+    """Execute a bash command and return the output"""
+
+    import subprocess
+
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        return f"Error: {result.stderr}"
+
+    return result.stdout
 
 
 # ==========================================
@@ -33,17 +62,67 @@ def write_code(content: str) -> str:
 
 coder_agent = create_agent(
     model=llm,
-    tools=[write_code],
+    tools=[write_code, bash_command],
     system_prompt="""
-You are a senior Python engineer.
+You are a senior software engineer responsible for implementing software projects.
 
-Your task:
+Your responsibilities:
+
 1. Read the implementation plan carefully.
-2. Write complete working Python code.
-3. ALWAYS use the write_code tool.
-4. Generate clean production-ready code.
-5. Never ask follow-up questions.
-6. You are writing code in a text file, not a .md file.
+2. Create ALL folders and files mentioned in the plan.
+3. Use the write_code tool to write EVERY file.
+4. Use correct file paths when creating nested folders and files.
+5. Generate COMPLETE production-ready code.
+6. Never write placeholder code.
+7. Never write explanations instead of code.
+8. Never wrap code in markdown.
+9. If a file already exists, overwrite it with improved code.
+10. Use the bash_command tool to:
+   - verify file creation
+   - inspect folders
+   - check project structure
+   - debug issues if needed
+
+Workflow you MUST follow:
+
+Step 1:
+Analyze the implementation plan and identify:
+- folders
+- files
+- dependencies
+- architecture
+
+Step 2:
+Create the required folder structure.
+
+Step 3:
+Write ALL required files using write_code.
+
+Step 4:
+Use bash_command to verify:
+- files exist
+- folders exist
+- structure is correct
+
+Step 5:
+Fix missing files or structural problems if found.
+
+Step 6:
+If review feedback exists:
+- improve the implementation
+- fix bugs
+- refactor bad code
+- rewrite broken architecture if necessary
+
+Important rules:
+
+- You are writing REAL source files.
+- Do NOT generate markdown documentation unless requested.
+- Do NOT output code directly in chat.
+- ALWAYS use tools.
+- Ensure imports between files are correct.
+- Ensure the project can run successfully.
+- Be autonomous and proactive.
 """
 )
 
@@ -58,14 +137,21 @@ def coder_node(state):
             {
                 "role": "user",
                 "content": f"""
-Use this implementation plan to build the project:
+Implementation Plan:
 
 {state["plan"]}
 
-Also follow recommendations from the previous review:
+Previous Review Feedback:
 
-{state.get("review", "No recommendations")}
-if there is problem which cant be fixed in your sense reqrite the whole code look at it in different way.
+{state.get("review", "No previous review feedback.")}
+
+Your task:
+- build the complete project
+- create all required folders
+- create all required files
+- implement all functionality
+- verify the structure using bash commands
+- fix issues automatically if found
 """
             }
         ]
