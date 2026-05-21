@@ -1,1 +1,0 @@
-Create a Flask template for a web application. The template should include a basic structure with routes for home and about pages, and a simple template for rendering content.
