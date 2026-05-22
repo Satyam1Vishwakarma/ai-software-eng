@@ -1,3 +1,4 @@
+import os
 from sre_parse import State
 
 from langchain.tools import tool
@@ -35,9 +36,9 @@ llm = ChatOllama(
 
 @tool
 def write_requirements(content: str) -> str:
-    """Write project requirements to requirements.md"""
-
-    with open("requirements.md", "w") as f:
+    """Write project requirements to /workspace/requirements.md"""
+    os.makedirs("./workspace", exist_ok=True)
+    with open("./workspace/requirements.md", "w") as f:
         f.write(content)
 
     return "requirements.md created successfully."

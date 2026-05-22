@@ -19,22 +19,33 @@ llm = ChatOllama(
 
 @tool
 def write_code(path: str, content: str) -> str:
-    """Write project code to a file"""
+    """Write project code inside the workspace folder"""
 
     import os
     import traceback
 
     try:
 
-        folder = os.path.dirname(path)
+        # Force all files into workspace/
+        workspace_root = "workspace"
+
+        # Clean dangerous paths
+        path = path.strip().lstrip("/")
+
+        # Final absolute project path
+        full_path = os.path.join(workspace_root, path)
+
+        # Create folders automatically
+        folder = os.path.dirname(full_path)
 
         if folder:
             os.makedirs(folder, exist_ok=True)
 
-        with open(path, "w") as f:
+        # Write file
+        with open(full_path, "w") as f:
             f.write(content)
 
-        return f"{path} created successfully."
+        return f"{full_path} created successfully."
 
     except Exception as e:
 
@@ -44,17 +55,27 @@ def write_code(path: str, content: str) -> str:
 
 @tool
 def bash_command(command: str) -> str:
-    """Execute a bash command and return the output"""
+    """Execute a bash command inside workspace"""
 
     import subprocess
+    import os
 
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    workspace_root = "workspace"
+
+    os.makedirs(workspace_root, exist_ok=True)
+
+    result = subprocess.run(
+        command,
+        shell=True,
+        capture_output=True,
+        text=True,
+        cwd=workspace_root
+    )
 
     if result.returncode != 0:
         return f"Error: {result.stderr}"
 
     return result.stdout
-
 
 # ==========================================
 # AGENT
@@ -68,6 +89,7 @@ You are a senior software engineer responsible for implementing software project
 
 Your responsibilities:
 
+0. Do all work in ./workspace folder.
 1. Read the implementation plan carefully.
 2. Create ALL folders and files mentioned in the plan.
 3. Use the write_code tool to write EVERY file.
